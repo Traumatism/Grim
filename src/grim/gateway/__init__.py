@@ -12,7 +12,6 @@ class WebSocket(websocket.WebSocket):
 
     def recv_json(self) -> Dict:
         """Receive a JSON object from the server"""
-
         return (
             {} if (response := self.recv()) is None else json.loads(response)
         )
@@ -29,11 +28,15 @@ class Gateway:
         self.ws = WebSocket()
         self.token = token
 
+        self.session_id = 0
+        self.sequence = 0
+
         self.connected = False
 
     def connect(self) -> None:
 
         self.ws.connect("wss://gateway.discord.gg/?v=6&encoding=json")
+
         self.ws.send_json(
             {
                 "op": 2,
@@ -52,7 +55,9 @@ class Gateway:
 
     def listen(self) -> Generator[Payload, None, None]:
         """Listen for events"""
+
         # weird way to re-connect to the WS, gotta fix this ASAP
+
         while True:
 
             if self.connected is False:
@@ -62,7 +67,33 @@ class Gateway:
                 data = self.ws.recv_json()
             except websocket._exceptions.WebSocketConnectionClosedException:
                 self.connected = False
+
+                resume = {
+                    "op": 6,
+                    "d": {
+                        "token": self.token,
+                        "session_id": self.session_id,
+                        "seq": self.sequence,
+                    },
+                }
+
+                self.ws.connect("wss://gateway.discord.gg/?v=9&encording=json")
+                self.ws.send_json(resume)
+
                 continue
 
+            payload = None
+
             with contextlib.suppress(json.decoder.JSONDecodeError):
-                yield Payload(**data)
+                payload = Payload(**data)
+
+            if payload is None or payload.op != 0:
+                continue
+
+            if payload.s is not None:
+                self.sequence = payload.s
+
+            if payload.d is not None:
+                self.session_id = payload.d["session_id"]
+
+            yield payload

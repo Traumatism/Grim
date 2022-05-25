@@ -1,3 +1,4 @@
+from .markdown import italic
 from .gateway import Gateway
 from .client import Client
 from .models import Message
@@ -6,14 +7,23 @@ from rich.console import Console
 
 from typing import Callable, Optional, TypeVar, Dict
 
+
 T = TypeVar("T")
 
 
 class App:
     """Main app"""
 
-    def __init__(self, token: str, prefix: Optional[str] = None) -> None:
-        super().__init__()
+    def __init__(
+        self,
+        token: str,
+        prefix: Optional[str] = None,
+        not_found: Callable[[Message], str] = lambda _: italic(
+            f"Command `{_.content}` not found"
+        ),
+    ) -> None:
+
+        self.not_found = not_found
 
         self.client = Client(token)
         self.console = Console()
@@ -42,15 +52,12 @@ class App:
 
         return wrapper
 
-    def not_found(self, message: Message) -> str:
-        """Return a message if the command is not found"""
-        return f"Command `{message.content}` not found"
-
     def listen(self):
         """Listen for messages"""
         self.console.log("listening for messages....")
 
         for event in self.gateway.listen():
+
             if event.d is None:
                 continue
 
@@ -64,8 +71,8 @@ class App:
                 ):
                     continue
 
-                answer = self.__listeners.get(
+                func = self.__listeners.get(
                     message.command or "", self.not_found
-                )(message)
+                )
 
-                self.client.send_message(message.channel_id, answer)
+                self.client.send_message(message.channel_id, func(message))
