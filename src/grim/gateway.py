@@ -59,5 +59,5 @@ class Gateway:
             self.connect()
 
         while True:
-            with contextlib.suppress():
+            with contextlib.suppress(json.decoder.JSONDecodeError):
                 yield Event(**self.ws.recv_json())
