@@ -4,7 +4,6 @@
 ## TODO
 
 * add async support
-* gateway keep-alive
 * add FastAPI-like arguments via type annotations
 
 ## Example
