@@ -36,6 +36,12 @@ class App:
         """Decorator to add a new command"""
 
         def wrapper(message: Message) -> str:
+
+            self.console.log(
+                f"handling command {message.content}",
+                f"from {message.author.full_name}",
+            )
+
             return func(message)
 
         self.__listeners[func.__name__] = wrapper
@@ -58,6 +64,8 @@ class App:
         }
 
         self.ws.send_json(payload)
+
+        self.console.log("listening for messages....")
 
         while True:
 
