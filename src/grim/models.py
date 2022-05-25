@@ -1,6 +1,6 @@
 import pydantic
 
-from typing import Dict
+from typing import Dict, List, Optional
 
 
 class Event(pydantic.BaseModel):
@@ -26,3 +26,15 @@ class Message(pydantic.BaseModel):
     timestamp: str
     content: str
     author: User
+
+    @property
+    def arguments(self) -> List[str]:
+        parts = self.content.split()
+
+        return [] if len(parts) == 1 else parts[1:]
+
+    @property
+    def command(self) -> Optional[str]:
+        parts = self.content.split()
+
+        return None if len(parts) == 0 else parts[0]

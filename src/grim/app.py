@@ -4,7 +4,7 @@ from .models import Event, Message
 
 from rich.console import Console
 
-from typing import Callable, Iterable, Tuple, TypeVar, Dict
+from typing import Callable, TypeVar, Dict
 
 T = TypeVar("T")
 
@@ -15,22 +15,16 @@ class App:
     def __init__(self, token: str, prefix: str = ".") -> None:
         super().__init__()
 
+        self.client = Client(token)
+        self.console = Console()
         self.ws = WebSocket()
+
         self.ws.connect("wss://gateway.discord.gg/?v=6&encoding=json")
 
-        self.console = Console()
-
-        self.client = Client(token)
-
+        self.token = token
         self.prefix = prefix
 
-        self.__token = token
         self.__listeners: Dict[str, Callable[[Message], str]] = {}
-
-    @property
-    def token(self) -> str:
-        """Warning: access this property only if you know what you are doing"""
-        return self.__token
 
     def command(
         self, func: Callable[[Message], str]
@@ -50,18 +44,9 @@ class App:
 
         return wrapper
 
-    def parse_content(self, content: str) -> Tuple[str, Iterable[str]]:
-        """Parse the content"""
-        parts = content.split(" ")
-
-        if len(parts) == 1:
-            return parts[0], []
-
-        return parts[0], parts[1:]
-
     def not_found(self, message: Message) -> str:
         """Return a message if the command is not found"""
-        return f"command {message.content} not found"
+        return f"Command `{message.content}` not found"
 
     def listen(self):
         """Listen for messages"""
@@ -90,6 +75,7 @@ class App:
                 continue
 
             if event.t == "MESSAGE_CREATE":
+
                 message = Message(**event.d)
 
                 if (
@@ -98,8 +84,8 @@ class App:
                 ):
                     continue
 
-                command, _ = self.parse_content(message.content)
-
-                answer = self.__listeners.get(command, self.not_found)(message)
+                answer = self.__listeners.get(
+                    message.command or "", self.not_found
+                )(message)
 
                 self.client.send_message(message.channel_id, answer)

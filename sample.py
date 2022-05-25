@@ -1,13 +1,13 @@
-import grim
+from grim import App, Message
 
 TOKEN = "..."
 
 
-app = grim.App(TOKEN)
+app = App(TOKEN, prefix="!")
 
 
 @app.command
-def ping(message: grim.Message) -> str:
+def ping(message: Message) -> str:
     return f"pong {message.author.full_name} !"
 
 
