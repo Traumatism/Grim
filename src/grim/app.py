@@ -1,14 +1,16 @@
-from .markdown import italic
 from .gateway import Gateway
 from .client import Client
 from .models import Message
 
 from rich.console import Console
 
-from typing import Callable, Optional, TypeVar, Dict
+from threadz import threadify
+from typing import Callable, Optional, TypeVar, Dict, Generator
 
 
 T = TypeVar("T")
+
+CommandCallable = Callable[[Message], Generator[str, None, None]]
 
 
 class App:
@@ -18,12 +20,7 @@ class App:
         self,
         token: str,
         prefix: Optional[str] = None,
-        not_found: Callable[[Message], str] = lambda _: italic(
-            f"Command `{_.content}` not found"
-        ),
     ) -> None:
-
-        self.not_found = not_found
 
         self.client = Client(token)
         self.console = Console()
@@ -32,14 +29,12 @@ class App:
         self.token = token
         self.prefix = prefix or ""
 
-        self.__listeners: Dict[str, Callable[[Message], str]] = {}
+        self.__listeners: Dict[str, CommandCallable] = {}
 
-    def command(
-        self, func: Callable[[Message], str]
-    ) -> Callable[[Message], str]:
+    def command(self, func: CommandCallable) -> CommandCallable:
         """Decorator to add a new command"""
 
-        def wrapper(message: Message) -> str:
+        def wrapper(message: Message) -> Generator[str, None, None]:
 
             self.console.log(
                 f"handling command {message.content}",
@@ -51,6 +46,12 @@ class App:
         self.__listeners[f"{self.prefix}{func.__name__}"] = wrapper
 
         return wrapper
+
+    @threadify
+    def run_command(self, func: CommandCallable, message: Message):
+        """Run a command"""
+        for content in func(message):
+            self.client.send_message(message.channel_id, content)
 
     def listen(self):
         """Listen for messages"""
@@ -71,8 +72,9 @@ class App:
                 ):
                     continue
 
-                func = self.__listeners.get(
-                    message.command or "", self.not_found
-                )
+                func = self.__listeners.get(message.command or "")
 
-                self.client.send_message(message.channel_id, func(message))
+                if func is None:
+                    continue
+
+                self.run_command(func, message)

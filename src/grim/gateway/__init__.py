@@ -1,4 +1,3 @@
-import contextlib
 import websocket
 import json
 
@@ -82,18 +81,18 @@ class Gateway:
 
                 continue
 
-            payload = None
+            except json.decoder.JSONDecodeError:
+                continue
 
-            with contextlib.suppress(json.decoder.JSONDecodeError):
-                payload = Payload(**data)
+            payload = Payload(**data)
 
-            if payload is None or payload.op != 0:
+            if payload.op != 0:
                 continue
 
             if payload.s is not None:
                 self.sequence = payload.s
 
             if payload.d is not None:
-                self.session_id = payload.d["session_id"]
+                self.session_id = payload.d.get("session_id", self.session_id)
 
             yield payload
