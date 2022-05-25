@@ -15,6 +15,9 @@ setup(
     include_package_data=True,
     install_requires=[
         "setuptools>=45.0",
+        "pydantic>=1.0.0",
+        "requests>=2.22.0",
+        ""
     ],
     classifiers=[
         "Development Status :: 1 - Planning",
