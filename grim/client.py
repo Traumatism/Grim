@@ -2,6 +2,8 @@ import requests
 
 from typing import Dict
 
+from .models import User
+
 
 API_URL = "https://discordapp.com/api/v6"
 
@@ -34,3 +36,8 @@ class Client:
             f"channels/{channel_id}/messages",
             {"content": content},
         )
+
+    @property
+    def user(self) -> User:
+        """Get the user"""
+        return User(**self.get("users/@me", {}))

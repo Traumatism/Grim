@@ -70,6 +70,9 @@ class App:
 
                 message = Message(**event.d)
 
+                if message.author.id == self.client.user.id:
+                    continue
+
                 for listener in self.__listeners.values():
                     answer = listener(message)
 

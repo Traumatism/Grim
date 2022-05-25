@@ -1,4 +1,4 @@
 from .app import App
-from .models import Message, MessageAuthor
+from .models import Message, User
 
-__all__ = ["App", "Message", "MessageAuthor"]
+__all__ = ["App", "Message", "User"]

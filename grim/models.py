@@ -8,7 +8,7 @@ class Event(pydantic.BaseModel):
     d: Dict
 
 
-class MessageAuthor(pydantic.BaseModel):
+class User(pydantic.BaseModel):
     id: int
     username: str
     discriminator: str
@@ -25,4 +25,4 @@ class Message(pydantic.BaseModel):
     type: int
     timestamp: str
     content: str
-    author: MessageAuthor
+    author: User
