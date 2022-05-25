@@ -1,8 +1,10 @@
 import websocket
+import time
 import json
 
 from .models import Payload
 
+from threadz import threadify
 from typing import Dict, Generator
 
 
@@ -29,44 +31,58 @@ class Gateway:
 
         self.session_id = 0
         self.sequence = 0
+        self.interval = 0
 
-        self.connected = False
+    @threadify
+    def heartbeat(self) -> None:
+        """Send a heartbeat"""
+        while True:
+            time.sleep(self.interval)
+
+            payload = Payload(
+                op=1,
+                d=None,
+                t=None,
+                s=None,
+            )
+
+            self.ws.send_json(payload.dict())
 
     def connect(self) -> None:
 
         self.ws.connect("wss://gateway.discord.gg/?v=6&encoding=json")
 
-        self.ws.send_json(
-            {
-                "op": 2,
-                "d": {
-                    "token": self.token,
-                    "properties": {
-                        "$os": "linux",
-                        "$browser": "chrome",
-                        "$device": "pc",
-                    },
+        payload = Payload(
+            op=2,
+            d={
+                "token": self.token,
+                "properties": {
+                    "os": "linux",
+                    "browser": "chrome",
+                    "device": "chrome",
                 },
-            }
+            },
+            t=None,
+            s=None,
         )
 
-        self.connected = True
+        self.ws.send_json(payload.dict())
+
+        data = Payload(**self.ws.recv_json())
+
+        self.interval = (data.d or {}).get("heartbeat_interval", 60000) / 1000
 
     def listen(self) -> Generator[Payload, None, None]:
         """Listen for events"""
 
-        # weird way to re-connect to the WS, gotta fix this ASAP
+        self.connect()
+        self.heartbeat()
 
         while True:
-
-            if self.connected is False:
-                self.connect()
 
             try:
                 data = self.ws.recv_json()
             except websocket._exceptions.WebSocketConnectionClosedException:
-                self.connected = False
-
                 resume = {
                     "op": 6,
                     "d": {
