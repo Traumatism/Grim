@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 
 
 class Event(pydantic.BaseModel):
-    t: str
+    t: Optional[str]
     d: Dict
 
 

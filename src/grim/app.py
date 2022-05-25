@@ -1,10 +1,10 @@
-from .ws import WebSocket
+from .gateway import Gateway
 from .client import Client
-from .models import Event, Message
+from .models import Message
 
 from rich.console import Console
 
-from typing import Callable, TypeVar, Dict
+from typing import Callable, Optional, TypeVar, Dict
 
 T = TypeVar("T")
 
@@ -12,17 +12,15 @@ T = TypeVar("T")
 class App:
     """Main app"""
 
-    def __init__(self, token: str, prefix: str = ".") -> None:
+    def __init__(self, token: str, prefix: Optional[str] = None) -> None:
         super().__init__()
 
         self.client = Client(token)
         self.console = Console()
-        self.ws = WebSocket()
-
-        self.ws.connect("wss://gateway.discord.gg/?v=6&encoding=json")
+        self.gateway = Gateway(token)
 
         self.token = token
-        self.prefix = prefix
+        self.prefix = prefix or ""
 
         self.__listeners: Dict[str, Callable[[Message], str]] = {}
 
@@ -50,30 +48,9 @@ class App:
 
     def listen(self):
         """Listen for messages"""
-
-        payload = {
-            "op": 2,
-            "d": {
-                "token": self.token,
-                "properties": {
-                    "$os": "linux",
-                    "$browser": "chrome",
-                    "$device": "pc",
-                },
-            },
-        }
-
-        self.ws.send_json(payload)
-
         self.console.log("listening for messages....")
 
-        while True:
-
-            try:
-                event = Event(**self.ws.recv_json())
-            except Exception:
-                continue
-
+        for event in self.gateway.listen():
             if event.t == "MESSAGE_CREATE":
 
                 message = Message(**event.d)
