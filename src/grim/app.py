@@ -51,6 +51,9 @@ class App:
         self.console.log("listening for messages....")
 
         for event in self.gateway.listen():
+            if event.d is None:
+                continue
+
             if event.t == "MESSAGE_CREATE":
 
                 message = Message(**event.d)

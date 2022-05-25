@@ -1,11 +1,6 @@
 import pydantic
 
-from typing import Dict, List, Optional
-
-
-class Event(pydantic.BaseModel):
-    t: Optional[str]
-    d: Dict
+from typing import List, Optional
 
 
 class User(pydantic.BaseModel):
